@@ -368,6 +368,7 @@ The root cause of CVE-2018-6622 and related vulnerability are improper handling 
 | Intel NUC5i5MYHE    | **Vulnerable** | Intel                    | MYBDWi5v.86A.0055.2019.0820.1505   | 08/20/2019                   | Infineon (IFX), dTPM  | SLB9665       |
 | HP EliteDesk 800 G4 | **Safe**       | HP                       | Q21                                | 02/15/2019                   | Infineon (IFX), dTPM  | SLB9670       |
 | Dell Optiplex 7060  | **Safe**       | Dell                     | 1.4.2                              | 06/11/2019                   | NTC, dTPM             | rls NPCT      |
+| Dell Inspiron 7579  | **Vulnerable** | Dell                     | 1.29.0                             | 11/10/2016                   | Intel, fTPM           | Intel         |
 | ASUS Q170M-C        | **Vulnerable** | American Megatrends Inc. | 4212                               | 07/24/2019                   | Infineon (IFX), dTPM  | SLB9665       |
 | ASUS PRIME Z390-A   | **Safe**       | American Megatrends Inc. | 1302                               | 09/02/2019                   | Intel, fTPM           | Intel         |
 | ASRock Z390 Extreme | **Safe**       | ASRock                   | P4.20                              | 07/29/2019                   | Intel, fTPM           | Intel         |
