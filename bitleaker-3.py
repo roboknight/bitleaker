@@ -578,7 +578,7 @@ class TPMInterface(Display):
 
         data = open('unseal-out.bin','rb').read()
         # Extract VMK from TPM result
-        vmk_data = extract_vmk_from_tpm_result(output.split('\n'))
+        vmk_data = self.extract_vmk_from_tpm_result(data)
         return vmk_data
 
     #
@@ -606,10 +606,10 @@ class TPMInterface(Display):
         state = 0
         for c in tpm_output:
             if state==4 and len(vmk_data) < 0x20: vmk_data.append(c)
-            if state==3 and c == 0x00: state == 4
-            if state==2 and c == 0x00: state == 3
-            if state==1 and c == 0x20: state == 2
-            if state==0 and c == 0x03: state == 1
+            if state==3 and c == 0x00: state = 4
+            if state==2 and c == 0x00: state = 3
+            if state==1 and c == 0x20: state = 2
+            if state==0 and c == 0x03: state = 1
             
         return vmk_data
 
@@ -708,8 +708,8 @@ if __name__ == '__main__':
     vmk_data = tpm.execute_tpm_cmd_and_extract_vmk()
     vmk_key = ''.join('{:02x}'.format(x) for x in vmk_data)
     # Print VMK
-    color_print('[>>>>>] VMK = '+vmk_key, GREEN)
-    info_print('\n')
+    tpm.color_print('[>>>>>] VMK = '+vmk_key, Color.GREEN)
+    tpm.info_print('\n')
 
     ##f.write(hexlify(bytearray(vmk_data)))
     ##f.close()
